@@ -3,15 +3,20 @@
   "version": "0.1.0",
   "description": "pi extension: session id and live model throughput (t/s) in the pi footer",
   "type": "module",
-  "keywords": ["pi-package"],
+  "keywords": [
+    "pi-package"
+  ],
   "license": "MIT",
-  "files": ["extensions"],
+  "files": [
+    "extensions"
+  ],
   "pi": {
-    "extensions": ["./extensions/*.ts"]
+    "extensions": [
+      "./extensions/*.ts"
+    ]
   },
-  "peerDependencies": { "@earendil-works/pi-coding-agent": "*", "@earendil-works/pi-tui": "*" },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/semanaut/zpi-session-tps-footer.git"
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
   }
 }
