@@ -1,4 +1,4 @@
-# @semanaut/pi-session-tps-footer
+# @semanaut/zpi-session-tps-footer
 
 Session id and live throughput for [pi](https://github.com/earendil-works/pi) in the footer.
 
@@ -7,5 +7,5 @@ Replaces pi's built-in footer and adds exactly two elements: the session id (rig
 ## Install
 
 ```bash
-pi install npm:@semanaut/pi-session-tps-footer
+pi install npm:@semanaut/zpi-session-tps-footer
 ```

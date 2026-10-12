@@ -1,5 +1,5 @@
 {
-  "name": "@semanaut/pi-session-tps-footer",
+  "name": "@semanaut/zpi-session-tps-footer",
   "version": "0.1.0",
   "description": "pi extension: session id and live model throughput (t/s) in the pi footer",
   "type": "module",
@@ -12,6 +12,6 @@
   "peerDependencies": { "@earendil-works/pi-coding-agent": "*", "@earendil-works/pi-tui": "*" },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/semanaut/pi-session-tps-footer.git"
+    "url": "git+https://github.com/semanaut/zpi-session-tps-footer.git"
   }
 }
