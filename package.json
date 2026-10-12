@@ -1,5 +1,5 @@
 {
-  "name": "@semanaut/zpi-session-tps-footer",
+  "name": "@semanaut/zpi-tps-footer",
   "version": "0.1.0",
   "description": "pi extension: session id and live model throughput (t/s) in the pi footer",
   "type": "module",
