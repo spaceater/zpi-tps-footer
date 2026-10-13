@@ -2,8 +2,6 @@
 
 Live model **output speed (tokens/s)** in the [pi](https://github.com/earendil-works/pi) footer, plus the session id.
 
-Developed against pi 1.1.0; see the `piVersion` field in `package.json`.
-
 The headline feature is the throughput readout: while the model is generating, every completed token is counted and the current output rate — `<t/s>` — is displayed after the model name, updating live. It is always rendered (`NULL t/s` only before the first measurement), so you can watch how fast your model actually streams.
 
 Replaces pi's built-in footer via `ctx.ui.setFooter()` and reproduces it, adding exactly two elements:

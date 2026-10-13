@@ -1,8 +1,8 @@
 {
   "name": "@semanaut/zpi-tps-footer",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "piVersion": "1.1.0",
-  "description": "pi extension: live model output speed (tokens/s) in the footer — the current generation rate, measured continuously and always visible after the model name, plus the session id",
+  "description": "pi extension: live model output speed (tokens/s) in the footer — the current generation rate, measured continuously and always visible after the model name, plus the session id; developed against the pi version given by the piVersion field",
   "type": "module",
   "keywords": [
     "pi-package"
