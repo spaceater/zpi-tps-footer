@@ -8,22 +8,30 @@
  *   - line 2 after the model name: `• <t/s>`, always rendered, `NULL t/s`
  *     until the first measurement (no `~` estimate marker)
  *
+ * It also shows the kind of content currently streaming in pi's `Working`
+ * busy label, via the official ctx.ui.setWorkingMessage() API (live: it
+ * updates the visible working row immediately). Only the three streaming
+ * phases override the label — `Thinking`, `Texting`, `Tool-calling` — shown
+ * while deltas of that kind arrive (held through micro-gaps between content
+ * blocks of one message). Everything else — request setup, prefill/TTFT,
+ * tool execution, retries, settling — keeps pi's default `Working` label.
+ *
  * Everything else matches that footer, so re-check it after every pi update.
  * Source of truth: `dist/modes/interactive/components/footer.js` in the pi
- * binary, verified against pi 1.3.0; extract it with
+ * binary, verified against pi 1.4.0; extract it with
  *
  *     python3 -c 'd=open("/opt/pi/pi","rb").read(); \
  *       s=d.find(b"// dist/modes/interactive/components/footer.js"); \
  *       print(d[s:d.find(b"// dist/", s+10)].decode())'
  *
- * What to compare (pi 1.3.0):
+ * What to compare (pi 1.4.0):
  *   - cwd comes from sessionManager.getCwd() (live), shortened via
  *     path.resolve/path.relative
  *   - usage totals include `entry.type === "usage"`; addUsageToTotals reads
  *     input/output/cacheRead/cacheWrite/cost.total without defaults
  *   - `(sub)`: `kimi-coding` or session.modelRuntime.isUsingSubscription(provider)
  *     (= isUsingOAuth && provider auth.oauth.isSubscription). The method lives on
- *     ModelRuntime only — ModelRegistry still does not expose it in 1.3.0, so the
+ *     ModelRuntime only — ModelRegistry still does not expose it in 1.4.0, so the
  *     same composite is spelled out here
  *   - `• xp` badge: process.env.PI_EXPERIMENTAL === "1"
  *   - `(auto)` hint: pi.getSettings().compaction?.enabled ?? true
@@ -39,8 +47,14 @@
  *     when session, sessionId, leafId, entryCount or the model changes
  *   - status line: sorted by key, joined with " ", empty entries not filtered
  *   - `• <session name>` suffix on line 1 when a session name is set
- *   - 1.3.0 added no footer changes; the provider-parens overflow fallback
- *     (drop `(provider)` when the right side no longer fits) already matches
+ *   - 1.4.0 changed nothing in the footer's output or inputs (verified against
+ *     the extracted footer.js and footer-data-provider.js); the provider-parens
+ *     overflow fallback (drop `(provider)` when the right side no longer fits)
+ *     still matches
+ *   - `session.autoCompactionEnabled` (what the built-in footer's
+ *     `(auto)` hint reads, updated live via setAutoCompactEnabled) is a thin
+ *     getter over settingsManager.getCompactionEnabled(), so reading
+ *     pi.getSettings().compaction?.enabled here is equivalent
  *
  * TpsMeter and its calibration come from the pi-tps-live package.
  */
@@ -279,7 +293,7 @@ class TpsMeter {
 // --- footer rendering -------------------------------------------------------
 
 /**
- * Reproduces pi's built-in footer layout (pi 1.3.0
+ * Reproduces pi's built-in footer layout (pi 1.4.0
  * `dist/modes/interactive/components/footer.js`) and adds two elements: the
  * session id right-aligned at the end of the **first** line, and a t/s readout
  * after the model name on the **second**.
@@ -581,6 +595,35 @@ function renderFooterLines(data: FooterData, width: number, theme: ThemeLike, tu
 	return lines;
 }
 
+// --- working-row phase tracking ---------------------------------------------
+
+/**
+ * Drives pi's `Working` busy label via ctx.ui.setWorkingMessage(). Only the
+ * three streaming phases (`Thinking` / `Texting` / `Tool-calling`) override
+ * the label; any other moment restores the default `Working`.
+ */
+class WorkingPhaseTracker {
+	private current: string | undefined;
+
+	constructor(private set: (message: string | undefined) => void) {}
+
+	private transition(next: string | undefined): void {
+		if (next === this.current) return;
+		this.current = next;
+		this.set(next);
+	}
+
+	/** A content delta arrived; hold this label through intra-message gaps. */
+	delta(phase: "Thinking" | "Texting" | "Tool-calling"): void {
+		this.transition(phase);
+	}
+
+	/** Outside a streaming phase: restore the default `Working` label. */
+	clear(): void {
+		this.transition(undefined);
+	}
+}
+
 // --- extension wiring -------------------------------------------------------
 
 /** Minimum ms between render requests while streaming. */
@@ -623,7 +666,7 @@ export default function sessionTpsFooterExtension(pi: ExtensionAPI): void {
 	}
 
 	/** Cached entry-scan results, mirroring the built-in footer's
-	 * getSessionStats() (pi 1.3.0): totals, cache-hit rate, context usage and
+	 * getSessionStats() (pi 1.4.0): totals, cache-hit rate, context usage and
 	 * the routed model only change when the session, the leaf, the entry count
 	 * or the model changes, so a render does not rescan every session entry.
 	 * ctx is a live view over the runner, so the cache survives session
@@ -681,7 +724,7 @@ export default function sessionTpsFooterExtension(pi: ExtensionAPI): void {
 			// Subscription-backed providers pi ships a built-in hint for, plus
 			// OAuth providers whose OAuth config is marked as a subscription.
 			// Equivalent to the built-in footer's modelRuntime.isUsingSubscription()
-			// (still not exposed through ModelRegistry in 1.3.0), spelled out here.
+			// (still not exposed through ModelRegistry in 1.4.0), spelled out here.
 			usingSubscription: model
 				? model.provider === "kimi-coding" ||
 					(ctx.modelRegistry.isUsingOAuth(model) &&
@@ -720,8 +763,21 @@ export default function sessionTpsFooterExtension(pi: ExtensionAPI): void {
 
 	// --- events ---------------------------------------------------------------
 
+	/** Latest event context, used to reach ctx.ui from the tracker callback. */
+	let ctxRef: ExtensionContext | undefined;
+
+	const tracker = new WorkingPhaseTracker((message) => {
+		try {
+			ctxRef?.ui.setWorkingMessage(message);
+		} catch {
+			// setWorkingMessage is UI-mode only; ignore elsewhere.
+		}
+	});
+
 	pi.on("session_start", (_event, ctx) => {
+		ctxRef = ctx;
 		meter.reset();
+		tracker.clear();
 		installFooter(ctx);
 	});
 
@@ -736,30 +792,51 @@ export default function sessionTpsFooterExtension(pi: ExtensionAPI): void {
 		requestRender(true);
 	});
 
+	pi.on("turn_start", (event, ctx) => {
+		ctxRef = ctx;
+		tracker.clear();
+	});
+
 	pi.on("message_start", (event, ctx) => {
+		ctxRef = ctx;
 		installFooter(ctx);
-		if (isAssistant(event.message)) meter.start();
+		if (isAssistant(event.message)) {
+			meter.start();
+			tracker.clear();
+		}
 	});
 
 	pi.on("message_update", (event, ctx) => {
 		if (!isAssistant(event.message)) return;
+		ctxRef = ctx;
 		installFooter(ctx);
 		const streamEvent = event.assistantMessageEvent;
-		if (
-			streamEvent.type === "text_delta" ||
-			streamEvent.type === "thinking_delta" ||
-			streamEvent.type === "toolcall_delta"
-		) {
+		if (streamEvent.type === "text_delta") {
+			tracker.delta("Texting");
+			meter.addDelta(streamEvent.delta, Date.now(), event.message.usage?.output);
+		} else if (streamEvent.type === "thinking_delta") {
+			tracker.delta("Thinking");
+			meter.addDelta(streamEvent.delta, Date.now(), event.message.usage?.output);
+		} else if (streamEvent.type === "toolcall_delta") {
+			tracker.delta("Tool-calling");
 			meter.addDelta(streamEvent.delta, Date.now(), event.message.usage?.output);
 		}
 		requestRender();
 	});
 
-	pi.on("message_end", (event, _ctx) => {
-		if (!isAssistant(event.message)) return;
-		const { stopReason, usage } = event.message;
-		const ok = stopReason === "stop" || stopReason === "length" || stopReason === "toolUse";
-		meter.finish(Date.now(), { outputTokens: usage?.output, ok });
+	pi.on("message_end", (event, ctx) => {
+		ctxRef = ctx;
+		if (isAssistant(event.message)) {
+			const { stopReason, usage } = event.message;
+			const ok = stopReason === "stop" || stopReason === "length" || stopReason === "toolUse";
+			meter.finish(Date.now(), { outputTokens: usage?.output, ok });
+			tracker.clear();
+		}
 		requestRender(true);
+	});
+
+	pi.on("agent_settled", (_event, ctx) => {
+		ctxRef = ctx;
+		tracker.clear();
 	});
 }

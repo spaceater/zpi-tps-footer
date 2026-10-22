@@ -1,13 +1,19 @@
 {
   "name": "@semanaut/zpi-tps-footer",
-  "version": "1.1.2",
-  "piVersion": "1.3.0",
+  "version": "1.2.0",
+  "piVersion": "1.4.0",
   "description": "pi extension: live model output speed (tokens/s) in the footer — the current generation rate, measured continuously and always visible after the model name, plus the session id; developed against the pi version given by the piVersion field",
   "type": "module",
   "keywords": [
     "pi-package"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/spaceater/zpi-tps-footer.git"
+  },
+  "bugs": "https://github.com/spaceater/zpi-tps-footer/issues",
+  "homepage": "https://github.com/spaceater/zpi-tps-footer#readme",
   "files": [
     "extensions"
   ],
