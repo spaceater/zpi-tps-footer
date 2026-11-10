@@ -18,20 +18,20 @@
  *
  * Everything else matches that footer, so re-check it after every pi update.
  * Source of truth: `dist/modes/interactive/components/footer.js` in the pi
- * binary, verified against pi 1.5.0; extract it with
+ * binary, verified against pi 1.5.1; extract it with
  *
  *     python3 -c 'd=open("/opt/pi/pi","rb").read(); \
  *       s=d.find(b"// dist/modes/interactive/components/footer.js"); \
  *       print(d[s:d.find(b"// dist/", s+10)].decode())'
  *
- * What to compare (pi 1.5.0):
+ * What to compare (pi 1.5.1):
  *   - cwd comes from sessionManager.getCwd() (live), shortened via
  *     path.resolve/path.relative
  *   - usage totals include `entry.type === "usage"`; addUsageToTotals reads
  *     input/output/cacheRead/cacheWrite/cost.total without defaults
  *   - `(sub)`: `kimi-coding` or session.modelRuntime.isUsingSubscription(provider)
  *     (= isUsingOAuth && provider auth.oauth.isSubscription). The method lives on
- *     ModelRuntime only — ModelRegistry still does not expose it in 1.5.0, so the
+ *     ModelRuntime only — ModelRegistry still does not expose it in 1.5.1, so the
  *     same composite is spelled out here
  *   - `• xp` badge: process.env.PI_EXPERIMENTAL === "1"
  *   - `(auto)` hint: pi.getSettings().compaction?.enabled ?? true
@@ -47,10 +47,11 @@
  *     when session, sessionId, leafId, entryCount or the model changes
  *   - status line: sorted by key, joined with " ", empty entries not filtered
  *   - `• <session name>` suffix on line 1 when a session name is set
- *   - 1.5.0 changed nothing in the footer's output or inputs (verified against
- *     the extracted footer.js and footer-data-provider.js); the provider-parens
- *     overflow fallback (drop `(provider)` when the right side no longer fits)
- *     still matches
+ *   - 1.5.1 changed nothing in the footer's output or inputs (verified against
+ *     the extracted footer.js and `dist/core/footer-data-provider.js` — the
+ *     provider module moved out of `modes/interactive/components/`); the
+ *     provider-parens overflow fallback (drop `(provider)` when the right side
+ *     no longer fits) still matches
  *   - `session.autoCompactionEnabled` (what the built-in footer's
  *     `(auto)` hint reads, updated live via setAutoCompactEnabled) is a thin
  *     getter over settingsManager.getCompactionEnabled(), so reading
@@ -293,7 +294,7 @@ class TpsMeter {
 // --- footer rendering -------------------------------------------------------
 
 /**
- * Reproduces pi's built-in footer layout (pi 1.5.0
+ * Reproduces pi's built-in footer layout (pi 1.5.1
  * `dist/modes/interactive/components/footer.js`) and adds two elements: the
  * session id right-aligned at the end of the **first** line, and a t/s readout
  * after the model name on the **second**.
@@ -666,7 +667,7 @@ export default function sessionTpsFooterExtension(pi: ExtensionAPI): void {
 	}
 
 	/** Cached entry-scan results, mirroring the built-in footer's
-	 * getSessionStats() (pi 1.5.0): totals, cache-hit rate, context usage and
+	 * getSessionStats() (pi 1.5.1): totals, cache-hit rate, context usage and
 	 * the routed model only change when the session, the leaf, the entry count
 	 * or the model changes, so a render does not rescan every session entry.
 	 * ctx is a live view over the runner, so the cache survives session
@@ -724,7 +725,7 @@ export default function sessionTpsFooterExtension(pi: ExtensionAPI): void {
 			// Subscription-backed providers pi ships a built-in hint for, plus
 			// OAuth providers whose OAuth config is marked as a subscription.
 			// Equivalent to the built-in footer's modelRuntime.isUsingSubscription()
-			// (still not exposed through ModelRegistry in 1.5.0), spelled out here.
+			// (still not exposed through ModelRegistry in 1.5.1), spelled out here.
 			usingSubscription: model
 				? model.provider === "kimi-coding" ||
 					(ctx.modelRegistry.isUsingOAuth(model) &&
